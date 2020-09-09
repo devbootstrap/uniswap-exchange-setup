@@ -8,22 +8,16 @@ Just run the index.js file and all will be setup. This can be run on any ethereu
 
 ## Ganache
 
+You can test this using ganache but you need to use a password to sign the transactions (set it in `.env`).
+
 ```
 ganache-cli -i 5777 -m 'disease cheap day once woman conduct fish layer kangaroo excite setup town'
 ```
 
 ## Deploy Contracts
 
-## Add Liquidity
-
-## Interact in Truffle Console
+Simply run the index.js file like so:
 
 ```
-const constants = require('./constant')
-const deployed = require('./deployed') // Enure addresses are updated here!
-
-omgExchange = new web3.eth.Contract(constants.ABI_EXCHANGE, deployed.OMG_EXCHANGE_ADDR)
-Object.keys(omgExchange.methods)
-
-omgExchange.methods.name().call()
+node index
 ```
