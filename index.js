@@ -10,11 +10,11 @@ const OPTIONS = {
     transactionBlockTimeout: 5
 };
 
-// connecting to geth
+// connecting to geth using ipc
 web3 = new Web3(new Web3.providers.IpcProvider(process.env.GETH_IPC_PATH, net));
 
 let owner
-const ownerPASSWORD = process.env.PASSWORD
+const ownerPASSWORD = process.env.OWNER_PASSWORD
 
 async function accounts() {
     const accounts = await web3.eth.personal.getAccounts()
@@ -84,7 +84,7 @@ async function deployXIOExchange(factoryAddress, xioTokenAddress) {
 
     let signed = await web3.eth.personal.signTransaction(txObject, ownerPASSWORD)
 
-    await web3.eth.sendSignedTransaction(signed.rawTransaction).then(res=>{
+    await web3.eth.sendSignedTransaction(signed.raw).then(res=>{
         console.log(res.transactionHash)
     })
 
@@ -122,7 +122,7 @@ async function deployOMGExchange(factoryAddress, omgTokenAddress) {
 
     let signed = await web3.eth.personal.signTransaction(txObject, ownerPASSWORD)
 
-    await web3.eth.sendSignedTransaction(signed.rawTransaction).then(res=>{
+    await web3.eth.sendSignedTransaction(signed.raw).then(res=>{
         console.log(res.transactionHash)
     })
 
@@ -152,16 +152,15 @@ async function addLiquidityXIO(xioExchangeAddress) {
         gasPrice: 1 * 1000000000,
         gasLimit: 1000000,
         gas: 3000000,  //only when connected to ganache
-        chainId: 5777,
         nonce: web3.utils.toHex(count),
         data: contract.methods.addLiquidity(ethAmount, tokenAmount, 1839591241).encodeABI(),
         value:Number(ethAmount)
     }
 
-    let signed = await web3.eth.accounts.signTransaction(txObject, ownerPASSWORD)
+    let signed = await web3.eth.personal.signTransaction(txObject, ownerPASSWORD)
 
 
-    let tx = await web3.eth.sendSignedTransaction(signed.rawTransaction)
+    let tx = await web3.eth.sendSignedTransaction(signed.raw)
         .on('confirmation', (confirmationNumber, receipt) => {
             if(confirmationNumber === 1){
                 console.log("LIQUIDITY ADDED XIO")
@@ -202,10 +201,9 @@ async function addLiquidityOMG(omgExchangeAddress) {
         value:Number(ethAmount)
     }
 
-    let signed = await web3.eth.accounts.signTransaction(txObject, ownerPASSWORD)
+    let signed = await web3.eth.personal.signTransaction(txObject, ownerPASSWORD)
 
-
-    let tx = await web3.eth.sendSignedTransaction(signed.rawTransaction)
+    let tx = await web3.eth.sendSignedTransaction(signed.raw)
         .on('confirmation', (confirmationNumber, receipt) => {
             if(confirmationNumber === 1){
                 console.log('LIQUIDITY ADDED OMG')

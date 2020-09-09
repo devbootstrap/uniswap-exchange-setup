@@ -6,13 +6,9 @@ Replace the bytecodes and ABIs to setup something different.
 This script will deploy tokens on testnet, create factory, create exchanges for both tokens and will add initial liquidity of 0.1 ETH for 50000 Tokens.
 Just run the index.js file and all will be setup. This can be run on any ethereum network.
 
-## Ganache
+## Geth
 
-You can test this using ganache but you need to use a password to sign the transactions (set it in `.env`).
-
-```
-ganache-cli -i 5777 -m 'disease cheap day once woman conduct fish layer kangaroo excite setup town'
-```
+This is designed to deploy the Uniswap V1 contracts to a local private Geth node for development purposes. In the index.js file Web3 is configured to connect to Geth via an Ipc Provider. Just set `GETH_IPC_PATH` in your `.env` file to the location of the Geth ipc file to connect to Geth.
 
 ## Deploy Contracts
 
