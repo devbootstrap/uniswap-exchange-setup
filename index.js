@@ -1,5 +1,6 @@
 const Web3 = require('web3')
 const constants = require('./constant')
+const net = require('net');
 require('dotenv').config()
 
 let contract;
@@ -9,10 +10,11 @@ const OPTIONS = {
     transactionBlockTimeout: 5
 };
 
-const web3 = new Web3("ws://localhost:8545", null, OPTIONS) // for main net
+// connecting to geth
+web3 = new Web3(new Web3.providers.IpcProvider(process.env.GETH_IPC_PATH, net));
 
 let owner
-const ownerPK = process.env.OWNER_PK
+const ownerPASSWORD = process.env.PASSWORD
 
 async function accounts() {
     const accounts = await web3.eth.personal.getAccounts()
@@ -32,8 +34,10 @@ async function main() {
     console.log(factoryAddress, "FACTORY")
     let xioExchange = await deployXIOExchange(factoryAddress, xioAddress)
     console.log(xioExchange, "XIO EXCHANGE")
-    // let omgExchange = await deployOMGExchange(factoryAddress, omgAddress)
-    // console.log(omgExchange, "OMG EXCHANGE")
+    let omgExchange = await deployOMGExchange(factoryAddress, omgAddress)
+    console.log(omgExchange, "OMG EXCHANGE")
+    await addLiquidityXIO(xioExchange)
+    await addLiquidityOMG(omgExchange)
     return
 }
 
@@ -74,14 +78,11 @@ async function deployXIOExchange(factoryAddress, xioTokenAddress) {
         gasPrice: 1 * 1000000000,
         gasLimit: 1000000,
         gas: 3000000,  //only when connected to ganache
-        // chainId: 5777,
         nonce: web3.utils.toHex(count),
         data: contract.methods.createExchange(xioTokenAddress).encodeABI()
     }
 
-    console.log('IN deployXIOExchange', txObject)
-
-    let signed = await web3.eth.accounts.signTransaction(txObject, ownerPK)
+    let signed = await web3.eth.personal.signTransaction(txObject, ownerPASSWORD)
 
     await web3.eth.sendSignedTransaction(signed.rawTransaction).then(res=>{
         console.log(res.transactionHash)
@@ -119,7 +120,7 @@ async function deployOMGExchange(factoryAddress, omgTokenAddress) {
         data: contract.methods.createExchange(omgTokenAddress).encodeABI()
     }
 
-    let signed = await web3.eth.accounts.signTransaction(txObject, ownerPK)
+    let signed = await web3.eth.personal.signTransaction(txObject, ownerPASSWORD)
 
     await web3.eth.sendSignedTransaction(signed.rawTransaction).then(res=>{
         console.log(res.transactionHash)
@@ -135,6 +136,90 @@ async function deployOMGExchange(factoryAddress, omgTokenAddress) {
     return contractAddress
 }
 
+async function addLiquidityXIO(xioExchangeAddress) {
+    let ethAmount = await web3.utils.toWei('0.1')
+
+    let tokenAmount = await web3.utils.toWei('50000')
+
+    contract = new web3.eth.Contract(constants.ABI_EXCHANGE, xioExchangeAddress);
+
+    let count = await web3.eth.getTransactionCount(owner, "pending")
+
+
+    let txObject = {
+        from: owner,
+        to: xioExchangeAddress,
+        gasPrice: 1 * 1000000000,
+        gasLimit: 1000000,
+        gas: 3000000,  //only when connected to ganache
+        chainId: 5777,
+        nonce: web3.utils.toHex(count),
+        data: contract.methods.addLiquidity(ethAmount, tokenAmount, 1839591241).encodeABI(),
+        value:Number(ethAmount)
+    }
+
+    let signed = await web3.eth.accounts.signTransaction(txObject, ownerPASSWORD)
+
+
+    let tx = await web3.eth.sendSignedTransaction(signed.rawTransaction)
+        .on('confirmation', (confirmationNumber, receipt) => {
+            if(confirmationNumber === 1){
+                console.log("LIQUIDITY ADDED XIO")
+            }
+        })
+        .on('error', (error) => {
+            console.log(error)
+        })
+        .on('transactionHash', async (hash) => {
+            console.log(hash);
+        });
+    return
+}
+
+async function addLiquidityOMG(omgExchangeAddress) {
+    const accounts = await web3.eth.personal.getAccounts()
+
+    owner = accounts[0]
+
+    let ethAmount = await web3.utils.toWei('0.1')
+
+    let tokenAmount = await web3.utils.toWei('50000')
+
+    contract = new web3.eth.Contract(constants.ABI_EXCHANGE, omgExchangeAddress);
+
+    let count = await web3.eth.getTransactionCount(owner, "pending")
+
+
+    let txObject = {
+        from: owner,
+        to: omgExchangeAddress,
+        gasPrice: 1 * 1000000000,
+        gasLimit: 1000000,
+        gas: 3000000,  //only when connected to ganache
+        chainId: 5777,
+        nonce: web3.utils.toHex(count),
+        data: contract.methods.addLiquidity(ethAmount, tokenAmount, 1839591241).encodeABI(),
+        value:Number(ethAmount)
+    }
+
+    let signed = await web3.eth.accounts.signTransaction(txObject, ownerPASSWORD)
+
+
+    let tx = await web3.eth.sendSignedTransaction(signed.rawTransaction)
+        .on('confirmation', (confirmationNumber, receipt) => {
+            if(confirmationNumber === 1){
+                console.log('LIQUIDITY ADDED OMG')
+            }
+        })
+        .on('error', (error) => {
+            console.log(error)
+        })
+        .on('transactionHash', async (hash) => {
+            console.log(hash);
+        });
+    return
+  }
+
 async function deploy(contract, bytecode, params) {
     var contractAddress = '';
     let data = ''
@@ -147,7 +232,7 @@ async function deploy(contract, bytecode, params) {
             arguments: [params]
         }).encodeABI()
     } else {
-        data: contract.deploy({
+        data = contract.deploy({
             data: bytecode
         }).encodeABI()
     }
@@ -157,14 +242,13 @@ async function deploy(contract, bytecode, params) {
         gasPrice: 1 * 1000000000,
         gasLimit: 1000000,
         gas: 3000000,  //only when connected to ganache
-        chainId: 5777,
         nonce: web3.utils.toHex(count),
-        data: data,
+        data: data
     }
 
-    let signed = await web3.eth.accounts.signTransaction(txObject, ownerPK)
+    let signed = await web3.eth.personal.signTransaction(txObject, ownerPASSWORD)
 
-    await web3.eth.sendSignedTransaction(signed.rawTransaction)
+    await web3.eth.sendSignedTransaction(signed.raw)
         .on('error', function (error) {
             console.log(error)
         })
