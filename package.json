@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "web3": "^1.2.6"
+    "dotenv": "^8.2.0",
+    "web3": "^1.2.11"
   }
 }
